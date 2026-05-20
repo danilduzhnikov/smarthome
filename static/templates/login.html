@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+
+{% block title %}Login{% endblock %}
+
+{% block content %}
+
+<div class="auth-wrapper">
+    <div class="auth-box">
+
+        <h2>Login</h2>
+
+        <form id="login-form">
+
+            <input
+                type="email"
+                id="email"
+                placeholder="Email"
+                class="input"
+            >
+
+            <input
+                type="password"
+                id="password"
+                placeholder="Password"
+                class="input"
+            >
+
+            <button type="submit">
+                Login
+            </button>
+
+            <p class="auth-switch  align-items: center;">
+                Don't have an account?
+                <a href="/register/">Register</a>
+            </p>
+
+        </form>
+
+    </div>
+</div>
+
+<script>
+document
+.getElementById("login-form")
+.addEventListener("submit", async (e) => {
+
+    e.preventDefault();
+
+    const response = await fetch("/token/", {
+        method: "POST",
+
+        headers: {
+            "Content-Type": "application/json"
+        },
+
+        body: JSON.stringify({
+            email: document.getElementById("email").value,
+            password: document.getElementById("password").value
+        })
+    });
+
+    const data = await response.json();
+
+    if (data.access) {
+
+        localStorage.setItem("access", data.access);
+        localStorage.setItem("refresh", data.refresh);
+
+        window.location.href = "/home";
+    }
+});
+</script>
+
+{% endblock %}

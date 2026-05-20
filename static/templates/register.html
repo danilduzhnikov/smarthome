@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+
+{% block title %}Register{% endblock %}
+
+{% block content %}
+
+<div class="auth-wrapper">
+    <div class="auth-box">
+
+        <h2>Register</h2>
+
+        <form id="register-form">
+
+            <input
+                type="text"
+                id="username"
+                placeholder="Username"
+                class="input"
+            >
+
+            <input
+                type="email"
+                id="email"
+                placeholder="Email"
+                class="input"
+            >
+
+            <input
+                type="password"
+                id="password"
+                placeholder="Password"
+                class="input"
+            >
+
+            <input
+                type="password"
+                id="password_confirm"
+                placeholder="Confirm password"
+                class="input"
+            >
+
+            <button type="submit">
+                Register
+            </button>
+
+        </form>
+
+        <p id="error-message"></p>
+
+    </div>
+</div>
+
+<script>
+document
+.getElementById("register-form")
+.addEventListener("submit", async (e) => {
+
+    e.preventDefault();
+
+    const response = await fetch("/api/accounts/register/", {
+
+        method: "POST",
+
+        headers: {
+            "Content-Type": "application/json"
+        },
+
+        body: JSON.stringify({
+
+            username: document.getElementById("username").value,
+
+            email: document.getElementById("email").value,
+
+            password: document.getElementById("password").value,
+
+            password_confirm: document.getElementById("password_confirm").value
+        })
+    });
+
+    const data = await response.json();
+
+    if (response.ok) {
+        
+        window.location.href = "/login";
+    }
+
+    else {
+
+        document.getElementById("error-message").innerText =
+            JSON.stringify(data);
+    }
+});
+</script>
+
+{% endblock %}
