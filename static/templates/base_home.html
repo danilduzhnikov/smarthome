@@ -5,9 +5,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
     <title>SmartHome</title>
-
     <link rel="stylesheet" href="{% static 'css/base_home_page.css' %}">
 </head>
 <body>
@@ -16,70 +14,85 @@
 
     <!-- SIDEBAR -->
     <aside class="sidebar" id="sidebar">
-
         <div class="sidebar-top">
             <div class="burger" id="burger">
-                <span></span>
-                <span></span>
-                <span></span>
+                <span></span><span></span><span></span>
             </div>
         </div>
 
         <nav class="menu">
-
             <a href="/profile/" class="menu-item">
                 <div class="menu-icon">
                     <svg viewBox="0 0 24 24"><path d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4Zm0 2c-4 0-7 2-7 4v1h14v-1c0-2-3-4-7-4Z"/></svg>
                 </div>
                 <div class="menu-text">Profile</div>
             </a>
-
             <a href="/" class="menu-item">
                 <div class="menu-icon">
                     <svg viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1v-9.5Z"/></svg>
                 </div>
                 <div class="menu-text">Homes</div>
             </a>
-
             <a href="/devices/" class="menu-item">
                 <div class="menu-icon">
                     <svg viewBox="0 0 24 24"><path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.2 1 2V18h6v-1.3c0-.8.4-1.5 1-2A7 7 0 0 0 12 2Z"/></svg>
                 </div>
                 <div class="menu-text">Devices</div>
             </a>
-
             <a href="/settings/" class="menu-item">
                 <div class="menu-icon">
                     <svg viewBox="0 0 24 24"><path d="M12 8.5A3.5 3.5 0 1 0 15.5 12 3.5 3.5 0 0 0 12 8.5Zm9 3-2-.5a7.8 7.8 0 0 0-.7-1.7l1.2-1.7-2.1-2.1-1.7 1.2a7.8 7.8 0 0 0-1.7-.7L12.5 3h-3l-.5 2a7.8 7.8 0 0 0-1.7.7L5.6 4.5 3.5 6.6l1.2 1.7a7.8 7.8 0 0 0-.7 1.7L2 11.5v3l2 .5a7.8 7.8 0 0 0 .7 1.7l-1.2 1.7 2.1 2.1 1.7-1.2a7.8 7.8 0 0 0 1.7.7l.5 2h3l.5-2a7.8 7.8 0 0 0 1.7-.7l1.7 1.2 2.1-2.1-1.2-1.7a7.8 7.8 0 0 0 .7-1.7l2-.5Z"/></svg>
                 </div>
                 <div class="menu-text">Settings</div>
             </a>
-
             <a href="/logout/" class="menu-item">
                 <div class="menu-icon">
                     <svg viewBox="0 0 24 24"><path d="M15 3h4a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1h-4M10 17l5-5-5-5M15 12H3"/></svg>
                 </div>
                 <div class="menu-text">Logout</div>
             </a>
-
         </nav>
     </aside>
 
     <!-- CONTENT -->
     <main class="content">
-
         <div class="content-header">
             <div class="content-title">My Homes</div>
-            <button class="create-home-btn">+</button>
+            <button class="create-home-btn" id="createHomeBtn">+</button>
         </div>
-
         <div class="homes-grid" id="homesGrid"></div>
-
     </main>
+
+    <!-- MODAL -->
+    <div class="modal-overlay" id="homeModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>Create New Home</h3>
+                <button class="modal-close" id="modalClose">&times;</button>
+            </div>
+            <form id="createHomeForm">
+                <div class="form-group">
+                    <label for="homeName">Home Name *</label>
+                    <input 
+                        type="text" 
+                        id="homeName" 
+                        name="name" 
+                        placeholder="e.g. My Apartment"
+                        maxlength="255"
+                        required
+                    >
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn-cancel" id="modalCancel">Cancel</button>
+                    <button type="submit" class="btn-primary">Create</button>
+                </div>
+            </form>
+            <div id="formError" class="error-message"></div>
+        </div>
+    </div>
 
 </div>
 
 <script src="{% static 'js/homes.js' %}"></script>
-
 </body>
 </html>
