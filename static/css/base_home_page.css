@@ -1,0 +1,181 @@
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: #f7f8fb;
+    color: #2c2c2c;
+    overflow-x: hidden;
+}
+
+/* APP */
+.app {
+    display: flex;
+    min-height: 100vh;
+}
+
+/* SIDEBAR */
+.sidebar {
+    width: 68px;
+    background: #fff;
+    border-right: 1px solid #ececec;
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100vh;
+    transition: 0.3s ease;
+    overflow: hidden;
+    z-index: 1000;
+}
+
+.sidebar.open {
+    width: 220px;
+}
+
+/* BURGER */
+.sidebar-top {
+    padding: 20px;
+    display: flex;
+    justify-content: center;
+}
+
+.burger {
+    width: 28px;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.burger span {
+    height: 2px;
+    background: #2c2c2c;
+    border-radius: 10px;
+    transition: 0.3s;
+}
+
+/* MENU */
+.menu {
+    padding: 10px;
+}
+
+.menu-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    border-radius: 12px;
+    text-decoration: none;
+    color: #2c2c2c;
+    transition: 0.2s;
+}
+
+.menu-item:hover {
+    background: #eef1ff;
+}
+
+.menu-icon svg {
+    width: 22px;
+    height: 22px;
+    fill: none;
+    stroke: #2c2c2c;
+}
+
+/* TEXT скрыт пока sidebar закрыт */
+.menu-text {
+    opacity: 0;
+    white-space: nowrap;
+    transition: 0.2s;
+}
+
+.sidebar.open .menu-text {
+    opacity: 1;
+}
+
+/* CONTENT */
+.content {
+    margin-left: 68px;
+    flex: 1;
+    padding: 40px;
+    transition: 0.3s;
+}
+
+.sidebar.open ~ .content {
+    margin-left: 220px;
+}
+
+/* HEADER */
+.content-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 25px;
+}
+
+.content-title {
+    font-size: 28px;
+    font-weight: 600;
+}
+
+/* BUTTON */
+.create-home-btn {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    border: none;
+    background: #e9ecff;
+    font-size: 28px;
+    cursor: pointer;
+}
+
+/* GRID */
+.homes-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 20px;
+}
+
+/* CARD */
+.home-card {
+    background: white;
+    padding: 20px;
+    border-radius: 16px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+    cursor: pointer;
+}
+
+.home-name {
+    font-size: 20px;
+    font-weight: 600;
+}
+
+.home-meta {
+    color: #777;
+    font-size: 13px;
+    margin-top: 6px;
+}
+
+/* EMPTY */
+.empty-homes {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 40px;
+    color: #888;
+}
+
+/* RESPONSIVE */
+@media (max-width: 768px) {
+    .content {
+        padding: 20px;
+    }
+
+    .sidebar.open {
+        width: 180px;
+    }
+
+    .sidebar.open ~ .content {
+        margin-left: 180px;
+    }
+}

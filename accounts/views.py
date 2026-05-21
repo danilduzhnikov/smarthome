@@ -25,7 +25,7 @@ class EmailTokenObtainPairView(TokenObtainPairView):
 # RENDER VIEWS
 # =========================
 
-class RenderViewSet:
+class RenderLoginViewSet:
 
     @staticmethod
     def login_page(request):

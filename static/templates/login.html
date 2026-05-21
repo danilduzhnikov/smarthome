@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+{% extends "base_auth.html" %}
 
 {% block title %}Login{% endblock %}
 
@@ -29,7 +29,7 @@
                 Login
             </button>
 
-            <p class="auth-switch  align-items: center;">
+            <p class="auth-switch">
                 Don't have an account?
                 <a href="/register/">Register</a>
             </p>
@@ -39,36 +39,6 @@
     </div>
 </div>
 
-<script>
-document
-.getElementById("login-form")
-.addEventListener("submit", async (e) => {
-
-    e.preventDefault();
-
-    const response = await fetch("/token/", {
-        method: "POST",
-
-        headers: {
-            "Content-Type": "application/json"
-        },
-
-        body: JSON.stringify({
-            email: document.getElementById("email").value,
-            password: document.getElementById("password").value
-        })
-    });
-
-    const data = await response.json();
-
-    if (data.access) {
-
-        localStorage.setItem("access", data.access);
-        localStorage.setItem("refresh", data.refresh);
-
-        window.location.href = "/home";
-    }
-});
-</script>
+<script src="{% static 'js/login.js' %}"></script>
 
 {% endblock %}

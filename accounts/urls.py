@@ -3,13 +3,13 @@ from rest_framework_simplejwt.views import TokenRefreshView
 
 from .views import (
     EmailTokenObtainPairView,
-    RenderViewSet,
+    RenderLoginViewSet,
     RegisterView,
 )
 
 urlpatterns = [
-    path("login/", RenderViewSet.login_page, name="login"),
-    path("register/", RenderViewSet.register_page, name="register"),
+    path("login/", RenderLoginViewSet.login_page, name="login"),
+    path("register/", RenderLoginViewSet.register_page, name="register"),
 
     path(
         "token/",
