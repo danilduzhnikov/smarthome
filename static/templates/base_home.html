@@ -1,5 +1,4 @@
 {% load static %}
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -12,7 +11,7 @@
 
 <div class="app">
 
-    <!-- SIDEBAR -->
+    <!-- SIDEBAR (без изменений) -->
     <aside class="sidebar" id="sidebar">
         <div class="sidebar-top">
             <div class="burger" id="burger">
@@ -45,7 +44,7 @@
                 </div>
                 <div class="menu-text">Settings</div>
             </a>
-            <a href="/logout/" class="menu-item">
+            <a href="/logout/" class="menu-item" id="sidebarLogout">
                 <div class="menu-icon">
                     <svg viewBox="0 0 24 24"><path d="M15 3h4a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1h-4M10 17l5-5-5-5M15 12H3"/></svg>
                 </div>
@@ -56,38 +55,108 @@
 
     <!-- CONTENT -->
     <main class="content">
+        <!-- Breadcrumbs (добавлено, стилизовано под старый дизайн) -->
+        <nav class="breadcrumbs" id="breadcrumbs" style="display: none; margin-bottom: 15px; font-size: 14px; color: #777;">
+            <a href="#" data-nav="homes" style="color: #2c2c2c; text-decoration: none; font-weight: 500;">My Homes</a>
+            <span id="crumbSep1" style="margin: 0 8px; display: none;">/</span>
+            <a href="#" id="crumbHome" data-nav="home" style="color: #2c2c2c; text-decoration: none; font-weight: 500; display: none;"></a>
+            <span id="crumbSep2" style="margin: 0 8px; display: none;">/</span>
+            <a href="#" id="crumbRoom" data-nav="room" style="color: #2c2c2c; text-decoration: none; font-weight: 500; display: none;"></a>
+        </nav>
+
         <div class="content-header">
-            <div class="content-title">My Homes</div>
-            <button class="create-home-btn" id="createHomeBtn">+</button>
+            <div class="content-title" id="contentTitle">My Homes</div>
+            <button class="create-home-btn" id="createBtn">+</button>
         </div>
+
+        <!-- Grids (используем тот же класс .homes-grid) -->
         <div class="homes-grid" id="homesGrid"></div>
+        <div class="homes-grid" id="roomsGrid" style="display: none;"></div>
+        <div class="homes-grid" id="devicesGrid" style="display: none;"></div>
+
+        <!-- States -->
+        <div id="loading" class="empty-homes" style="display: none;">Loading...</div>
+        <div id="error" class="empty-homes" style="display: none; color: #e74c3c;"></div>
     </main>
 
-    <!-- MODAL -->
+    <!-- MODAL: Create Home (без изменений) -->
     <div class="modal-overlay" id="homeModal">
         <div class="modal">
             <div class="modal-header">
                 <h3>Create New Home</h3>
-                <button class="modal-close" id="modalClose">&times;</button>
+                <button class="modal-close" id="homeModalClose">&times;</button>
             </div>
             <form id="createHomeForm">
                 <div class="form-group">
                     <label for="homeName">Home Name *</label>
-                    <input 
-                        type="text" 
-                        id="homeName" 
-                        name="name" 
-                        placeholder="e.g. My Apartment"
-                        maxlength="255"
-                        required
-                    >
+                    <input type="text" id="homeName" name="name" placeholder="e.g. Home123" required>
+                </div>
+                <div class="form-group">
+                    <label for="homeAddress">Address</label>
+                    <input type="text" id="homeAddress" name="address" placeholder="Street, City">
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn-cancel" id="modalCancel">Cancel</button>
+                    <button type="button" class="btn-cancel" id="homeModalCancel">Cancel</button>
                     <button type="submit" class="btn-primary">Create</button>
                 </div>
             </form>
-            <div id="formError" class="error-message"></div>
+            <div id="homeFormError" class="error-message"></div>
+        </div>
+    </div>
+
+    <!-- MODAL: Create Room (новый, но в том же стиле) -->
+    <div class="modal-overlay" id="roomModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>Create New Room</h3>
+                <button class="modal-close" id="roomModalClose">&times;</button>
+            </div>
+            <form id="createRoomForm">
+                <div class="form-group">
+                    <label for="roomName">Room Name *</label>
+                    <input type="text" id="roomName" name="name" placeholder="e.g. Kitchen" required>
+                </div>
+                <div class="form-group">
+                    <label for="roomDescription">Description</label>
+                    <textarea id="roomDescription" name="description" rows="3" placeholder="Optional" style="width:100%;padding:12px 16px;border:1px solid #e6e6e6;border-radius:10px;font-size:16px;background:#fafafa;color:#2c2c2c;resize:vertical;"></textarea>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn-cancel" id="roomModalCancel">Cancel</button>
+                    <button type="submit" class="btn-primary">Create</button>
+                </div>
+            </form>
+            <div id="roomFormError" class="error-message"></div>
+        </div>
+    </div>
+
+    <!-- MODAL: Create Device (новый, но в том же стиле) -->
+    <div class="modal-overlay" id="deviceModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>Add New Device</h3>
+                <button class="modal-close" id="deviceModalClose">&times;</button>
+            </div>
+            <form id="createDeviceForm">
+                <div class="form-group">
+                    <label for="deviceName">Device Name *</label>
+                    <input type="text" id="deviceName" name="name" placeholder="e.g. Smart Lamp" required>
+                </div>
+                <div class="form-group">
+                    <label for="deviceType">Type</label>
+                    <select id="deviceType" name="device_type" style="width:100%;padding:12px 16px;border:1px solid #e6e6e6;border-radius:10px;font-size:16px;background:#fafafa;color:#2c2c2c;">
+                        <option value="light">💡 Light</option>
+                        <option value="sensor">🌡️ Sensor</option>
+                        <option value="switch">🔌 Switch</option>
+                        <option value="camera">📷 Camera</option>
+                        <option value="other">📦 Other</option>
+                    </select>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn-cancel" id="deviceModalCancel">Cancel</button>
+                    <button type="submit" class="btn-primary">Add Device</button>
+                </div>
+            </form>
+            <div id="deviceFormError" class="error-message"></div>
         </div>
     </div>
 
