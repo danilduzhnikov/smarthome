@@ -360,14 +360,9 @@ function renderDevices(devices) {
             readingsList.push(`hum: ${parseFloat(readings.hum.value).toFixed(1)}%`);
         }
         
-        const readingsHtml = readingsList.length > 0 
-            ? readingsList.map(r => `<div style="font-size:13px;color:#2c2c2c;margin:4px 0">${r}</div>`).join('')
-            : '<div style="color:#aaa;font-size:13px">No data</div>';
-        
         const isOnline = device.is_online === true;
-        const statusText = isOnline ? 'Online' : 'Offline';
-        const statusClass = isOnline ? '' : 'inactive';
         
+        // Формируем lastSeenText для отображения в блоке readings
         let lastSeenText = '';
         if (!isOnline && device.last_seen) {
             const lastSeen = new Date(device.last_seen);
@@ -382,6 +377,20 @@ function renderDevices(devices) {
             }
         }
         
+        const readingsHtml = readingsList.length > 0 && isOnline
+    ? readingsList.map(r => `<div style="font-size:13px;color:#2c2c2c;margin:4px 0">${r}</div>`).join('')
+    : `<div style="color:#aaa;font-size:13px">
+          No data${!isOnline && lastSeenText ? `<br><small>• Last seen: ${lastSeenText}</small>` : ''}
+       </div>`;
+        const statusText = isOnline ? 'Online' : 'Offline';
+        const statusClass = isOnline ? '' : 'inactive';
+        
+        // В статусе оставляем только базовую информацию, чтобы не дублировать lastSeen
+        const statusHtml = `<div class="device-status">
+            <span class="status-dot ${statusClass}"></span>
+            <span>${statusText}</span>
+        </div>`;
+        
         const icons = { light:'💡', sensor:'🌡️', switch:'🔌', camera:'📷', other:'📦' };
         
         return `
@@ -391,13 +400,10 @@ function renderDevices(devices) {
                     <span class="device-type">${icons[device.device_type] || '📦'} ${device.device_type}</span>
                 </div>
                 <div class="device-uuid" title="${device.id}">ID: ${device.id.slice(0,8)}...</div>
-                <div style="margin:10px 0;padding:10px;background:#f8f9fa;border-radius:8px;">
+                <div style="margin:10px 0;padding:10px;background:#f8f9fa;border-radius:8px;min-height:50px;">
                     ${readingsHtml}
                 </div>
-                <div class="device-status">
-                    <span class="status-dot ${statusClass}"></span>
-                    <span>${statusText}${lastSeenText ? ` (${lastSeenText})` : ''}</span>
-                </div>
+                ${statusHtml}
             </div>
         `;
     }).join('');
