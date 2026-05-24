@@ -93,11 +93,16 @@ body {
     margin-left: 68px;
     flex: 1;
     padding: 40px;
-    transition: 0.3s;
+    transition: margin-left 0.3s ease, margin-right 0.35s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .sidebar.open ~ .content {
     margin-left: 220px;
+}
+
+/* Shift content when stats panel is open */
+.content.panel-open {
+    margin-right: 480px;
 }
 
 .content-header {
@@ -122,6 +127,12 @@ body {
     cursor: pointer;
 }
 
+.create-home-btn:hover {
+    background: #dfe5ff;
+    transform: scale(1.05);
+    transition: all 0.2s;
+}
+
 .homes-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
@@ -142,24 +153,22 @@ body {
     transition: 0.2s;
 }
 
-/* === Room Card (используем те же стили) === */
 .room-card {
     composes: home-card;
 }
 
-/* === Device Card (немного адаптируем под устройства) === */
 .device-card {
     background: white;
     padding: 20px;
     border-radius: 16px;
     box-shadow: 0 10px 30px rgba(0,0,0,0.05);
-    cursor: default;
+    cursor: pointer;
+    transition: all 0.2s;
 }
 
 .device-card:hover {
     box-shadow: 0 12px 35px rgba(0,0,0,0.08);
     transform: translateY(-2px);
-    transition: 0.2s;
 }
 
 .device-header {
@@ -211,10 +220,14 @@ body {
 }
 
 .device-status {
-    font-size: 12px;
     display: flex;
     align-items: center;
     gap: 6px;
+    font-size: 12px;
+}
+
+.device-status span:last-child {
+    color: #777;
 }
 
 .status-dot {
@@ -222,10 +235,19 @@ body {
     height: 8px;
     border-radius: 50%;
     background: #28a745;
+    box-shadow: 0 0 0 rgba(40, 167, 69, 0.4);
+    animation: pulse 2s infinite;
 }
 
 .status-dot.inactive {
     background: #dc3545;
+    animation: none;
+}
+
+@keyframes pulse {
+    0% { box-shadow: 0 0 0 0 rgba(40, 167, 69, 0.4); }
+    70% { box-shadow: 0 0 0 6px rgba(40, 167, 69, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(40, 167, 69, 0); }
 }
 
 .home-name {
@@ -246,19 +268,9 @@ body {
     color: #888;
 }
 
-@media (max-width: 768px) {
-    .content {
-        padding: 20px;
-    }
-
-    .sidebar.open {
-        width: 180px;
-    }
-
-    .sidebar.open ~ .content {
-        margin-left: 180px;
-    }
-}
+/* ============================================================
+   MODALS
+   ============================================================ */
 
 .modal-overlay {
     display: none;
@@ -294,14 +306,8 @@ body {
 }
 
 @keyframes slideUp {
-    from { 
-        opacity: 0; 
-        transform: translateY(20px); 
-    }
-    to { 
-        opacity: 1; 
-        transform: translateY(0); 
-    }
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 
 .modal-header {
@@ -420,46 +426,201 @@ body {
     min-height: 20px;
 }
 
-.create-home-btn:hover {
-    background: #dfe5ff;
-    transform: scale(1.05);
+/* ============================================================
+   RIGHT STATISTICS PANEL
+   Matches existing design: white bg, #2c2c2c text, #6b7cff accent,
+   16px border-radius, soft shadows
+   ============================================================ */
+
+.stats-panel {
+    position: fixed;
+    top: 0;
+    right: -500px;
+    width: 480px;
+    height: 100vh;
+    background: #ffffff;
+    border-left: 1px solid #ececec;
+    z-index: 1500;
+    transition: right 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    box-shadow: -8px 0 30px rgba(0, 0, 0, 0.06);
+}
+
+.stats-panel.open {
+    right: 0;
+}
+
+.stats-panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 24px 24px 16px;
+    border-bottom: 1px solid #ececec;
+}
+
+.stats-panel-header h3 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: #2c2c2c;
+}
+
+.stats-close-btn {
+    background: none;
+    border: none;
+    color: #888;
+    font-size: 24px;
+    cursor: pointer;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 10px;
     transition: all 0.2s;
 }
 
-/* Обновление статуса в реальном времени */
-.device-status {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 12px;
+.stats-close-btn:hover {
+    background: #f5f6f8;
+    color: #6b7cff;
 }
 
-.device-status span:last-child {
+/* Period Selector Buttons */
+.period-selector {
+    display: flex;
+    gap: 8px;
+    padding: 16px 24px;
+}
+
+.period-btn {
+    flex: 1;
+    padding: 8px 12px;
+    border: 1px solid #e6e6e6;
+    border-radius: 10px;
+    background: #fafafa;
+    color: #777;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.period-btn:hover {
+    border-color: #cfd8ff;
+    color: #2c2c2c;
+}
+
+.period-btn.active {
+    background: #e9ecff;
+    border-color: #6b7cff;
+    color: #2c2c2c;
+    font-weight: 600;
+}
+
+/* Chart Container */
+.chart-container {
+    padding: 8px 24px 16px;
+    height: 260px;
+    position: relative;
+}
+
+/* Statistics Summary */
+.stats-summary {
+    padding: 16px 24px 32px;
+    border-top: 1px solid #ececec;
+}
+
+.stats-summary h4 {
+    margin: 0 0 14px;
+    font-size: 15px;
+    font-weight: 600;
+    color: #2c2c2c;
+}
+
+.stats-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.stat-item {
+    background: #f8f9fa;
+    border: 1px solid #ececec;
+    border-radius: 12px;
+    padding: 14px 16px;
+}
+
+.stat-metric-name {
+    font-size: 12px;
+    font-weight: 600;
+    color: #6b7cff;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.stat-value-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 2px 0;
+}
+
+.stat-label {
+    font-size: 12px;
     color: #777;
 }
 
-.status-dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: #28a745;
-    box-shadow: 0 0 0 rgba(40, 167, 69, 0.4);
-    animation: pulse 2s infinite;
+.stat-value {
+    font-size: 14px;
+    font-weight: 600;
+    color: #2c2c2c;
 }
 
-.status-dot.inactive {
-    background: #dc3545;
-    animation: none;
+.stat-value.min {
+    color: #6b7cff;
 }
 
-@keyframes pulse {
-    0% {
-        box-shadow: 0 0 0 0 rgba(40, 167, 69, 0.4);
+.stat-value.max {
+    color: #e74c3c;
+}
+
+.stat-value.count {
+    color: #777;
+}
+
+.no-stats {
+    color: #aaa;
+    font-size: 13px;
+    text-align: center;
+    padding: 20px;
+}
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+
+@media (max-width: 768px) {
+    .content {
+        padding: 20px;
     }
-    70% {
-        box-shadow: 0 0 0 6px rgba(40, 167, 69, 0);
+
+    .sidebar.open {
+        width: 180px;
     }
-    100% {
-        box-shadow: 0 0 0 0 rgba(40, 167, 69, 0);
+
+    .sidebar.open ~ .content {
+        margin-left: 180px;
+    }
+
+    .stats-panel {
+        width: 100%;
+        right: -100%;
+    }
+
+    .content.panel-open {
+        margin-right: 0;
     }
 }

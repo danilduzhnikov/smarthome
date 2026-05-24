@@ -1,5 +1,5 @@
 /**
- * SmartHome Frontend - Navigation & CRUD
+ * SmartHome Frontend - Navigation & CRUD + Statistics Panel
  */
 
 // ===== STATE =====
@@ -9,6 +9,9 @@ const state = {
     currentHomeName: null,
     currentRoomId: null,
     currentRoomName: null,
+    // Statistics panel state
+    statsDeviceId: null,
+    statsPeriod: 'day',
 };
 
 // ===== API =====
@@ -17,10 +20,12 @@ const API = {
     rooms: (homeId) => `/home/api/homes/${homeId}/rooms/`,
     devices: (roomId) => `/devices/api/rooms/${roomId}/devices/`,
     logout: '/accounts/api/logout/',
+    statistics: (deviceId, period) => `/statistics/api/statistics/${deviceId}/?period=${period}`,
 };
 
 // ===== DOM CACHE =====
 let els = {};
+let currentChart = null;
 
 // ===== INIT =====
 document.addEventListener('DOMContentLoaded', () => {
@@ -42,6 +47,7 @@ function cacheElements() {
         devicesGrid: document.getElementById('devicesGrid'),
         
         // UI
+        mainContent: document.getElementById('mainContent'),
         contentTitle: document.getElementById('contentTitle'),
         createBtn: document.getElementById('createBtn'),
         breadcrumbs: document.getElementById('breadcrumbs'),
@@ -66,6 +72,13 @@ function cacheElements() {
         burger: document.getElementById('burger'),
         sidebar: document.getElementById('sidebar'),
         sidebarLogout: document.getElementById('sidebarLogout'),
+
+        // Statistics Panel
+        statsPanel: document.getElementById('statsPanel'),
+        statsCloseBtn: document.getElementById('statsCloseBtn'),
+        statsDeviceName: document.getElementById('statsDeviceName'),
+        statsGrid: document.getElementById('statsGrid'),
+        periodButtons: document.querySelectorAll('.period-btn'),
     };
 }
 
@@ -76,7 +89,6 @@ function attachEvents() {
     // Burger menu
     if (els.burger && els.sidebar) {
         els.burger.addEventListener('click', () => {
-            console.log('🍔 Burger clicked');
             els.sidebar.classList.toggle('open');
         });
     }
@@ -115,21 +127,38 @@ function attachEvents() {
     setupModalClose('device');
     
     // Form submits
-    if (els.createHomeForm) {
-        els.createHomeForm.addEventListener('submit', handleCreateHome);
-    }
-    if (els.createRoomForm) {
-        els.createRoomForm.addEventListener('submit', handleCreateRoom);
-    }
-    if (els.createDeviceForm) {
-        els.createDeviceForm.addEventListener('submit', handleCreateDevice);
-    }
+    if (els.createHomeForm) els.createHomeForm.addEventListener('submit', handleCreateHome);
+    if (els.createRoomForm) els.createRoomForm.addEventListener('submit', handleCreateRoom);
+    if (els.createDeviceForm) els.createDeviceForm.addEventListener('submit', handleCreateDevice);
     
     // Logout
     if (els.sidebarLogout) {
         els.sidebarLogout.addEventListener('click', (e) => {
             e.preventDefault();
             handleLogout();
+        });
+    }
+
+    // === STATISTICS PANEL EVENTS ===
+    if (els.statsCloseBtn) {
+        els.statsCloseBtn.addEventListener('click', closeStatsPanel);
+    }
+
+    if (els.periodButtons) {
+        els.periodButtons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const period = btn.dataset.period;
+                if (period === state.statsPeriod) return;
+                
+                state.statsPeriod = period;
+                // Update active button state
+                els.periodButtons.forEach(b => b.classList.toggle('active', b.dataset.period === period));
+                
+                // Fetch new data if panel is open
+                if (state.statsDeviceId) {
+                    fetchAndRenderStatistics(state.statsDeviceId, period);
+                }
+            });
         });
     }
     
@@ -155,9 +184,7 @@ function setupModalClose(type) {
     
     if (modal) {
         modal.addEventListener('click', (e) => {
-            if (e.target === modal) {
-                modal.classList.remove('active');
-            }
+            if (e.target === modal) modal.classList.remove('active');
         });
     }
 }
@@ -167,6 +194,9 @@ function navigateTo(level, id = null, name = null) {
     console.log(`🧭 Navigate to: ${level}`, { id, name });
     
     state.level = level;
+    
+    // Close stats panel when navigating away from devices
+    closeStatsPanel();
     
     if (level === 'homes') {
         state.currentHomeId = state.currentHomeName = state.currentRoomId = state.currentRoomName = null;
@@ -184,7 +214,6 @@ function navigateTo(level, id = null, name = null) {
     if (els.roomsGrid) els.roomsGrid.style.display = level === 'home' ? 'grid' : 'none';
     if (els.devicesGrid) els.devicesGrid.style.display = level === 'room' ? 'grid' : 'none';
     
-    // Update breadcrumbs
     updateBreadcrumbs();
     
     // Load data
@@ -193,9 +222,8 @@ function navigateTo(level, id = null, name = null) {
     else if (level === 'room' && id) loadDevices(id);
     
     // Auto-refresh control
-    if (level === 'room') {
-        startAutoRefresh();
-    } else if (refreshInterval) {
+    if (level === 'room') startAutoRefresh();
+    else if (refreshInterval) {
         clearInterval(refreshInterval);
         refreshInterval = null;
     }
@@ -206,18 +234,10 @@ function updateBreadcrumbs() {
     
     els.breadcrumbs.style.display = 'flex';
     
-    if (els.crumbHome) {
-        els.crumbHome.style.display = state.currentHomeId ? 'inline' : 'none';
-    }
-    if (els.crumbSep1) {
-        els.crumbSep1.style.display = state.currentHomeId ? 'inline' : 'none';
-    }
-    if (els.crumbRoom) {
-        els.crumbRoom.style.display = state.currentRoomId ? 'inline' : 'none';
-    }
-    if (els.crumbSep2) {
-        els.crumbSep2.style.display = state.currentRoomId ? 'inline' : 'none';
-    }
+    if (els.crumbHome) els.crumbHome.style.display = state.currentHomeId ? 'inline' : 'none';
+    if (els.crumbSep1) els.crumbSep1.style.display = state.currentHomeId ? 'inline' : 'none';
+    if (els.crumbRoom) els.crumbRoom.style.display = state.currentRoomId ? 'inline' : 'none';
+    if (els.crumbSep2) els.crumbSep2.style.display = state.currentRoomId ? 'inline' : 'none';
     
     if (state.currentHomeId && els.crumbHome) {
         els.crumbHome.textContent = escapeHtml(state.currentHomeName || `Home #${state.currentHomeId}`);
@@ -226,83 +246,60 @@ function updateBreadcrumbs() {
         els.crumbRoom.textContent = escapeHtml(state.currentRoomName || `Room #${state.currentRoomId}`);
     }
     
-    // Title
     const titles = { 'homes': 'My Homes', 'home': 'Rooms', 'room': 'Devices' };
-    if (els.contentTitle) {
-        els.contentTitle.textContent = titles[state.level];
-    }
+    if (els.contentTitle) els.contentTitle.textContent = titles[state.level];
 }
 
 // ===== API CALLS =====
 async function loadHomes() {
     toggleLoading(true);
     showError(null);
-    
     try {
         const token = localStorage.getItem('access');
-        const res = await fetch(API.homes, {
-            headers: { 'Authorization': `Bearer ${token}` }
-        });
+        const res = await fetch(API.homes, { headers: { 'Authorization': `Bearer ${token}` } });
         if (!res.ok) throw new Error('Failed to load homes');
-        const homes = await res.json();
-        renderHomes(homes);
+        renderHomes(await res.json());
     } catch (e) {
         console.error('Load homes error:', e);
         showError(e.message);
-    } finally {
-        toggleLoading(false);
-    }
+    } finally { toggleLoading(false); }
 }
 
 async function loadRooms(homeId) {
     toggleLoading(true);
     showError(null);
-    
     try {
         const token = localStorage.getItem('access');
-        const res = await fetch(API.rooms(homeId), {
-            headers: { 'Authorization': `Bearer ${token}` }
-        });
+        const res = await fetch(API.rooms(homeId), { headers: { 'Authorization': `Bearer ${token}` } });
         if (!res.ok) throw new Error('Failed to load rooms');
-        const rooms = await res.json();
-        renderRooms(rooms);
+        renderRooms(await res.json());
     } catch (e) {
         console.error('Load rooms error:', e);
         showError(e.message);
-    } finally {
-        toggleLoading(false);
-    }
+    } finally { toggleLoading(false); }
 }
 
 async function loadDevices(roomId) {
     toggleLoading(true);
     showError(null);
-    
     try {
         const token = localStorage.getItem('access');
-        const res = await fetch(API.devices(roomId), {
-            headers: { 'Authorization': `Bearer ${token}` }
-        });
+        const res = await fetch(API.devices(roomId), { headers: { 'Authorization': `Bearer ${token}` } });
         if (!res.ok) throw new Error('Failed to load devices');
-        const devices = await res.json();
-        renderDevices(devices);
+        renderDevices(await res.json());
     } catch (e) {
         console.error('Load devices error:', e);
         showError(e.message);
-    } finally {
-        toggleLoading(false);
-    }
+    } finally { toggleLoading(false); }
 }
 
 // ===== RENDERING =====
 function renderHomes(homes) {
     if (!els.homesGrid) return;
-    
     if (!homes?.length) {
         els.homesGrid.innerHTML = '<div class="empty-homes">No homes yet. Click + to create.</div>';
         return;
     }
-    
     els.homesGrid.innerHTML = homes.map(home => `
         <div class="home-card" data-home-id="${home.id}" data-home-name="${escapeHtml(home.name)}">
             <div class="home-name">${escapeHtml(home.name)}</div>
@@ -312,20 +309,16 @@ function renderHomes(homes) {
     `).join('');
     
     els.homesGrid.querySelectorAll('.home-card').forEach(card => {
-        card.addEventListener('click', () => {
-            navigateTo('home', card.dataset.homeId, card.dataset.homeName);
-        });
+        card.addEventListener('click', () => navigateTo('home', card.dataset.homeId, card.dataset.homeName));
     });
 }
 
 function renderRooms(rooms) {
     if (!els.roomsGrid) return;
-    
     if (!rooms?.length) {
         els.roomsGrid.innerHTML = '<div class="empty-homes">No rooms yet. Click + to create.</div>';
         return;
     }
-    
     els.roomsGrid.innerHTML = rooms.map(room => `
         <div class="home-card room-card" data-room-id="${room.id}" data-room-name="${escapeHtml(room.name)}">
             <div class="home-name">${escapeHtml(room.name)}</div>
@@ -335,15 +328,12 @@ function renderRooms(rooms) {
     `).join('');
     
     els.roomsGrid.querySelectorAll('.room-card').forEach(card => {
-        card.addEventListener('click', () => {
-            navigateTo('room', card.dataset.roomId, card.dataset.roomName);
-        });
+        card.addEventListener('click', () => navigateTo('room', card.dataset.roomId, card.dataset.roomName));
     });
 }
 
 function renderDevices(devices) {
     if (!els.devicesGrid) return;
-    
     if (!devices?.length) {
         els.devicesGrid.innerHTML = '<div class="empty-homes">No devices yet. Click + to add.</div>';
         return;
@@ -351,50 +341,29 @@ function renderDevices(devices) {
     
     els.devicesGrid.innerHTML = devices.map(device => {
         const readings = device.latest_readings || {};
-        
         const readingsList = [];
-        if (readings.temp) {
-            readingsList.push(`temp: ${parseFloat(readings.temp.value).toFixed(1)}°C`);
-        }
-        if (readings.hum) {
-            readingsList.push(`hum: ${parseFloat(readings.hum.value).toFixed(1)}%`);
-        }
+        if (readings.temp) readingsList.push(`temp: ${parseFloat(readings.temp.value).toFixed(1)}°C`);
+        if (readings.hum) readingsList.push(`hum: ${parseFloat(readings.hum.value).toFixed(1)}%`);
         
         const isOnline = device.is_online === true;
-        
-        // Формируем lastSeenText для отображения в блоке readings
         let lastSeenText = '';
         if (!isOnline && device.last_seen) {
-            const lastSeen = new Date(device.last_seen);
-            const diff = Math.floor((Date.now() - lastSeen.getTime()) / 1000);
-            
-            if (diff < 60) {
-                lastSeenText = `${diff}s ago`;
-            } else if (diff < 3600) {
-                lastSeenText = `${Math.floor(diff / 60)}m ago`;
-            } else {
-                lastSeenText = `${Math.floor(diff / 3600)}h ago`;
-            }
+            const diff = Math.floor((Date.now() - new Date(device.last_seen).getTime()) / 1000);
+            if (diff < 60) lastSeenText = `${diff}s ago`;
+            else if (diff < 3600) lastSeenText = `${Math.floor(diff / 60)}m ago`;
+            else lastSeenText = `${Math.floor(diff / 3600)}h ago`;
         }
         
         const readingsHtml = readingsList.length > 0 && isOnline
-    ? readingsList.map(r => `<div style="font-size:13px;color:#2c2c2c;margin:4px 0">${r}</div>`).join('')
-    : `<div style="color:#aaa;font-size:13px">
-          No data${!isOnline && lastSeenText ? `<br><small>• Last seen: ${lastSeenText}</small>` : ''}
-       </div>`;
-        const statusText = isOnline ? 'Online' : 'Offline';
+            ? readingsList.map(r => `<div style="font-size:13px;color:#2c2c2c;margin:4px 0">${r}</div>`).join('')
+            : `<div style="color:#aaa;font-size:13px">No data${!isOnline && lastSeenText ? `<br><small>• Last seen: ${lastSeenText}</small>` : ''}</div>`;
+        
         const statusClass = isOnline ? '' : 'inactive';
-        
-        // В статусе оставляем только базовую информацию, чтобы не дублировать lastSeen
-        const statusHtml = `<div class="device-status">
-            <span class="status-dot ${statusClass}"></span>
-            <span>${statusText}</span>
-        </div>`;
-        
+        const statusText = isOnline ? 'Online' : 'Offline';
         const icons = { light:'💡', sensor:'🌡️', switch:'🔌', camera:'📷', other:'📦' };
         
         return `
-            <div class="device-card">
+            <div class="device-card" data-device-id="${device.id}" data-device-name="${escapeHtml(device.name)}">
                 <div class="device-header">
                     <span class="device-name">${escapeHtml(device.name)}</span>
                     <span class="device-type">${icons[device.device_type] || '📦'} ${device.device_type}</span>
@@ -403,10 +372,233 @@ function renderDevices(devices) {
                 <div style="margin:10px 0;padding:10px;background:#f8f9fa;border-radius:8px;min-height:50px;">
                     ${readingsHtml}
                 </div>
-                ${statusHtml}
+                <div class="device-status">
+                    <span class="status-dot ${statusClass}"></span>
+                    <span>${statusText}</span>
+                </div>
             </div>
         `;
     }).join('');
+    
+    // Attach click handler to open statistics panel
+    els.devicesGrid.querySelectorAll('.device-card').forEach(card => {
+        card.addEventListener('click', () => {
+            const deviceId = card.dataset.deviceId;
+            const deviceName = card.dataset.deviceName;
+            openStatsPanel(deviceId, deviceName);
+        });
+    });
+}
+
+// ===== STATISTICS PANEL LOGIC =====
+
+/**
+ * Opens the right-side statistics panel and loads default (day) data
+ */
+function openStatsPanel(deviceId, deviceName) {
+    state.statsDeviceId = deviceId;
+    state.statsPeriod = 'day';
+    
+    if (els.statsDeviceName) els.statsDeviceName.textContent = `${deviceName} Statistics`;
+    if (els.statsPanel) els.statsPanel.classList.add('open');
+    if (els.mainContent) els.mainContent.classList.add('panel-open');
+    
+    // Reset period buttons
+    if (els.periodButtons) {
+        els.periodButtons.forEach(b => b.classList.toggle('active', b.dataset.period === 'day'));
+    }
+    
+    fetchAndRenderStatistics(deviceId, 'day');
+}
+
+/**
+ * Closes the statistics panel and cleans up chart
+ */
+function closeStatsPanel() {
+    if (els.statsPanel) els.statsPanel.classList.remove('open');
+    if (els.mainContent) els.mainContent.classList.remove('panel-open');
+    
+    if (currentChart) {
+        currentChart.destroy();
+        currentChart = null;
+    }
+    state.statsDeviceId = null;
+}
+
+/**
+ * Fetches statistics from API and renders chart + summary
+ */
+async function fetchAndRenderStatistics(deviceId, period) {
+    if (!deviceId) return;
+    
+    try {
+        const token = localStorage.getItem('access');
+        const url = API.statistics(deviceId, period);
+        const res = await fetch(url, { headers: { 'Authorization': `Bearer ${token}` } });
+        
+        if (!res.ok) throw new Error(`Statistics API error: ${res.status}`);
+        
+        const data = await res.json();
+        renderChart(data.data_points || [], period);
+        renderStatsSummary(data.statistics || []);
+    } catch (error) {
+        console.error('Failed to fetch statistics:', error);
+        if (els.statsGrid) {
+            els.statsGrid.innerHTML = '<div class="no-stats">Failed to load statistics</div>';
+        }
+    }
+}
+
+/**
+ * Renders Chart.js line chart with gradient fill matching site theme
+ */
+function renderChart(dataPoints, period) {
+    const canvas = document.getElementById('deviceChart');
+    if (!canvas) return;
+    
+    const ctx = canvas.getContext('2d');
+    
+    // Destroy previous instance
+    if (currentChart) {
+        currentChart.destroy();
+        currentChart = null;
+    }
+    
+    if (!dataPoints.length) {
+        // Render empty chart with message
+        currentChart = new Chart(ctx, {
+            type: 'line',
+            data: { labels: [], datasets: [] },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: { enabled: false },
+                },
+                scales: { x: { display: false }, y: { display: false } }
+            }
+        });
+        return;
+    }
+    
+    const labels = dataPoints.map(p => formatTimestamp(p.timestamp, period));
+    const values = dataPoints.map(p => p.value);
+    
+    // Gradient matching site accent color #6b7cff
+    const gradient = ctx.createLinearGradient(0, 0, 0, 280);
+    gradient.addColorStop(0, 'rgba(107, 124, 255, 0.3)');
+    gradient.addColorStop(1, 'rgba(107, 124, 255, 0.01)');
+    
+    currentChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels,
+            datasets: [{
+                label: 'Value',
+                data: values,
+                borderColor: '#6b7cff',
+                backgroundColor: gradient,
+                borderWidth: 2,
+                pointRadius: 3,
+                pointBackgroundColor: '#6b7cff',
+                pointBorderColor: '#ffffff',
+                pointBorderWidth: 2,
+                fill: true,
+                tension: 0.3,
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    backgroundColor: '#2c2c2c',
+                    titleColor: '#e9ecff',
+                    bodyColor: '#e9ecff',
+                    borderColor: '#6b7cff',
+                    borderWidth: 1,
+                    cornerRadius: 8,
+                    padding: 10,
+                }
+            },
+            scales: {
+                x: {
+                    grid: { color: 'rgba(0, 0, 0, 0.04)' },
+                    ticks: {
+                        color: '#777',
+                        maxTicksLimit: period === 'day' ? 12 : 10,
+                        font: { size: 11 }
+                    }
+                },
+                y: {
+                    grid: { color: 'rgba(0, 0, 0, 0.04)' },
+                    ticks: { color: '#777', font: { size: 11 } }
+                }
+            },
+            animation: { duration: 500, easing: 'easeOutQuart' }
+        }
+    });
+}
+
+/**
+ * Formats timestamp for chart X-axis based on period
+ */
+function formatTimestamp(isoString, period) {
+    const date = new Date(isoString);
+    switch (period) {
+        case 'day':
+            return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+        case 'week':
+            return date.toLocaleDateString('en-US', { weekday: 'short', hour: '2-digit' });
+        case 'month':
+            return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        default:
+            return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+    }
+}
+
+/**
+ * Renders average/min/max/count statistics in the summary block
+ */
+function renderStatsSummary(statistics) {
+    if (!els.statsGrid) return;
+    
+    if (!statistics || !statistics.length) {
+        els.statsGrid.innerHTML = '<div class="no-stats">No statistics available for this period</div>';
+        return;
+    }
+    
+    els.statsGrid.innerHTML = statistics.map(stat => `
+        <div class="stat-item">
+            <div class="stat-metric-name">${formatMetricName(stat.metric_type)}</div>
+            <div class="stat-value-row">
+                <span class="stat-label">Avg:</span>
+                <span class="stat-value">${Number(stat.avg_value).toFixed(2)}</span>
+            </div>
+            <div class="stat-value-row">
+                <span class="stat-label">Min:</span>
+                <span class="stat-value min">${Number(stat.min_value).toFixed(2)}</span>
+            </div>
+            <div class="stat-value-row">
+                <span class="stat-label">Max:</span>
+                <span class="stat-value max">${Number(stat.max_value).toFixed(2)}</span>
+            </div>
+            <div class="stat-value-row">
+                <span class="stat-label">Points:</span>
+                <span class="stat-value count">${stat.count}</span>
+            </div>
+        </div>
+    `).join('');
+}
+
+/**
+ * Capitalizes metric type for display
+ */
+function formatMetricName(metricType) {
+    if (!metricType) return 'Unknown';
+    return metricType.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 }
 
 // ===== CREATE HANDLERS =====
@@ -419,7 +611,6 @@ function handleCreateClick() {
 async function handleCreateHome(e) {
     e.preventDefault();
     const data = Object.fromEntries(new FormData(els.createHomeForm).entries());
-    
     try {
         const token = localStorage.getItem('access');
         const res = await fetch(API.homes, {
@@ -443,7 +634,6 @@ async function handleCreateRoom(e) {
     e.preventDefault();
     if (!state.currentHomeId) return;
     const data = Object.fromEntries(new FormData(els.createRoomForm).entries());
-    
     try {
         const token = localStorage.getItem('access');
         const res = await fetch(API.rooms(state.currentHomeId), {
@@ -470,7 +660,6 @@ async function handleCreateDevice(e) {
     if (data.metadata) {
         try { data.metadata = JSON.parse(data.metadata); } catch { data.metadata = {}; }
     }
-    
     try {
         const token = localStorage.getItem('access');
         const res = await fetch(API.devices(state.currentRoomId), {
@@ -510,13 +699,9 @@ function closeModal(type) {
 }
 
 function toggleLoading(show) {
-    if (els.loading) {
-        els.loading.style.display = show ? 'block' : 'none';
-    }
+    if (els.loading) els.loading.style.display = show ? 'block' : 'none';
     [els.homesGrid, els.roomsGrid, els.devicesGrid].forEach(g => {
-        if (g && g.style.display !== 'none') {
-            g.style.opacity = show ? '0.5' : '1';
-        }
+        if (g && g.style.display !== 'none') g.style.opacity = show ? '0.5' : '1';
     });
 }
 
@@ -549,7 +734,6 @@ let refreshInterval = null;
 
 function startAutoRefresh() {
     if (refreshInterval) clearInterval(refreshInterval);
-    
     refreshInterval = setInterval(() => {
         if (state.level === 'room' && state.currentRoomId) {
             loadDevices(state.currentRoomId);

@@ -6,12 +6,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SmartHome</title>
     <link rel="stylesheet" href="{% static 'css/base_home_page.css' %}">
+    <!-- Chart.js for dynamic statistics graph -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
 </head>
 <body>
 
 <div class="app">
 
-    <!-- SIDEBAR (без изменений) -->
+    <!-- SIDEBAR -->
     <aside class="sidebar" id="sidebar">
         <div class="sidebar-top">
             <div class="burger" id="burger">
@@ -54,8 +56,8 @@
     </aside>
 
     <!-- CONTENT -->
-    <main class="content">
-        <!-- Breadcrumbs (добавлено, стилизовано под старый дизайн) -->
+    <main class="content" id="mainContent">
+        <!-- Breadcrumbs -->
         <nav class="breadcrumbs" id="breadcrumbs" style="display: none; margin-bottom: 15px; font-size: 14px; color: #777;">
             <a href="#" data-nav="homes" style="color: #2c2c2c; text-decoration: none; font-weight: 500;">My Homes</a>
             <span id="crumbSep1" style="margin: 0 8px; display: none;">/</span>
@@ -69,7 +71,7 @@
             <button class="create-home-btn" id="createBtn">+</button>
         </div>
 
-        <!-- Grids (используем тот же класс .homes-grid) -->
+        <!-- Grids -->
         <div class="homes-grid" id="homesGrid"></div>
         <div class="homes-grid" id="roomsGrid" style="display: none;"></div>
         <div class="homes-grid" id="devicesGrid" style="display: none;"></div>
@@ -79,7 +81,35 @@
         <div id="error" class="empty-homes" style="display: none; color: #e74c3c;"></div>
     </main>
 
-    <!-- MODAL: Create Home (без изменений) -->
+    <!-- RIGHT STATISTICS PANEL (New functionality) -->
+    <aside class="stats-panel" id="statsPanel">
+        <div class="stats-panel-header">
+            <h3 id="statsDeviceName">Device Statistics</h3>
+            <button class="stats-close-btn" id="statsCloseBtn">&times;</button>
+        </div>
+
+        <!-- Period Selector -->
+        <div class="period-selector">
+            <button class="period-btn active" data-period="day">1 Day</button>
+            <button class="period-btn" data-period="week">7 Days</button>
+            <button class="period-btn" data-period="month">30 Days</button>
+        </div>
+
+        <!-- Chart Container -->
+        <div class="chart-container">
+            <canvas id="deviceChart"></canvas>
+        </div>
+
+        <!-- Average Statistics Block -->
+        <div class="stats-summary">
+            <h4>Average Statistics</h4>
+            <div class="stats-grid" id="statsGrid">
+                <!-- Stats items injected by JS -->
+            </div>
+        </div>
+    </aside>
+
+    <!-- MODAL: Create Home -->
     <div class="modal-overlay" id="homeModal">
         <div class="modal">
             <div class="modal-header">
@@ -104,7 +134,7 @@
         </div>
     </div>
 
-    <!-- MODAL: Create Room (новый, но в том же стиле) -->
+    <!-- MODAL: Create Room -->
     <div class="modal-overlay" id="roomModal">
         <div class="modal">
             <div class="modal-header">
@@ -129,7 +159,7 @@
         </div>
     </div>
 
-    <!-- MODAL: Create Device (новый, но в том же стиле) -->
+    <!-- MODAL: Create Device -->
     <div class="modal-overlay" id="deviceModal">
         <div class="modal">
             <div class="modal-header">
