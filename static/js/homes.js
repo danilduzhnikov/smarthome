@@ -439,6 +439,8 @@ async function fetchAndRenderStatistics(deviceId, period) {
         if (!res.ok) throw new Error(`Statistics API error: ${res.status}`);
         
         const data = await res.json();
+        console.log('📊 Received data:', data); // ← Добавь это для отладки
+        
         renderChart(data.data_points || [], period);
         renderStatsSummary(data.statistics || []);
     } catch (error) {
@@ -452,67 +454,88 @@ async function fetchAndRenderStatistics(deviceId, period) {
 /**
  * Renders Chart.js line chart with gradient fill matching site theme
  */
+/**
+ * Renders Chart.js line chart with multiple metrics
+ */
 function renderChart(dataPoints, period) {
     const canvas = document.getElementById('deviceChart');
     if (!canvas) return;
     
+    // Гарантируем высоту canvas, иначе createLinearGradient может упасть с ошибкой
+    if (!canvas.height) canvas.height = 280;
+    
     const ctx = canvas.getContext('2d');
     
-    // Destroy previous instance
     if (currentChart) {
         currentChart.destroy();
         currentChart = null;
     }
     
     if (!dataPoints.length) {
-        // Render empty chart with message
         currentChart = new Chart(ctx, {
             type: 'line',
             data: { labels: [], datasets: [] },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { display: false },
-                    tooltip: { enabled: false },
-                },
-                scales: { x: { display: false }, y: { display: false } }
-            }
+            options: { responsive: true, maintainAspectRatio: false }
         });
         return;
     }
     
-    const labels = dataPoints.map(p => formatTimestamp(p.timestamp, period));
-    const values = dataPoints.map(p => p.value);
+    // Извлекаем уникальные типы метрик (temperature, humidity и т.д.)
+    const metricTypes = [];
+    const firstPoint = dataPoints[0];
+    Object.keys(firstPoint).forEach(key => {
+        if (key !== 'timestamp') metricTypes.push(key);
+    });
     
-    // Gradient matching site accent color #6b7cff
-    const gradient = ctx.createLinearGradient(0, 0, 0, 280);
-    gradient.addColorStop(0, 'rgba(107, 124, 255, 0.3)');
-    gradient.addColorStop(1, 'rgba(107, 124, 255, 0.01)');
+    // Форматируем подписи для оси X
+    const labels = dataPoints.map(p => formatTimestamp(p.timestamp, period));
+    
+    const colors = {
+        temperature: { border: '#ff6384', bg: 'rgba(255, 99, 132, 0.1)', point: '#ff6384' },
+        humidity: { border: '#36a2eb', bg: 'rgba(54, 162, 235, 0.1)', point: '#36a2eb' },
+        power: { border: '#ffce56', bg: 'rgba(255, 206, 86, 0.1)', point: '#ffce56' },
+        default: { border: '#6b7cff', bg: 'rgba(107, 124, 255, 0.1)', point: '#6b7cff' }
+    };
+    
+    // Создаем датасеты для каждой метрики
+    const datasets = metricTypes.map(metricType => {
+        const color = colors[metricType] || colors.default;
+        
+        // Создаем градиент (безопасно, так как мы задали высоту canvas выше)
+        const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+        gradient.addColorStop(0, color.bg.replace('0.1', '0.3'));
+        gradient.addColorStop(1, color.bg.replace('0.1', '0.01'));
+        
+        return {
+            label: formatMetricName(metricType),
+            data: dataPoints.map(p => p[metricType] ?? null),
+            borderColor: color.border,
+            backgroundColor: gradient,
+            borderWidth: 2,
+            pointRadius: 3,
+            pointBackgroundColor: color.point,
+            pointBorderColor: '#ffffff',
+            pointBorderWidth: 2,
+            fill: true,
+            tension: 0.3,
+            // Влажность отправляем на правую ось (y1), остальное на левую (y)
+            yAxisID: metricType.includes('hum') ? 'y1' : 'y', 
+        };
+    });
     
     currentChart = new Chart(ctx, {
         type: 'line',
-        data: {
-            labels,
-            datasets: [{
-                label: 'Value',
-                data: values,
-                borderColor: '#6b7cff',
-                backgroundColor: gradient,
-                borderWidth: 2,
-                pointRadius: 3,
-                pointBackgroundColor: '#6b7cff',
-                pointBorderColor: '#ffffff',
-                pointBorderWidth: 2,
-                fill: true,
-                tension: 0.3,
-            }]
-        },
+        data: { labels, datasets },
         options: {
             responsive: true,
             maintainAspectRatio: false,
+            interaction: { mode: 'index', intersect: false },
             plugins: {
-                legend: { display: false },
+                legend: {
+                    display: true,
+                    position: 'top',
+                    labels: { color: '#777', font: { size: 11 }, usePointStyle: true }
+                },
                 tooltip: {
                     backgroundColor: '#2c2c2c',
                     titleColor: '#e9ecff',
@@ -528,13 +551,23 @@ function renderChart(dataPoints, period) {
                     grid: { color: 'rgba(0, 0, 0, 0.04)' },
                     ticks: {
                         color: '#777',
-                        maxTicksLimit: period === 'day' ? 12 : 10,
+                        maxTicksLimit: 25, // Гарантируем, что все 24-25 точек точно отобразятся
                         font: { size: 11 }
                     }
                 },
                 y: {
+                    type: 'linear',
+                    position: 'left',
+                    title: { display: true, text: 'Температура', color: '#ff6384' },
                     grid: { color: 'rgba(0, 0, 0, 0.04)' },
-                    ticks: { color: '#777', font: { size: 11 } }
+                    ticks: { color: '#ff6384', font: { size: 11 } }
+                },
+                y1: {
+                    type: 'linear',
+                    position: 'right',
+                    title: { display: true, text: 'Влажность', color: '#36a2eb' },
+                    grid: { drawOnChartArea: false }, // Отключаем сетку для правой оси, чтобы не мешала
+                    ticks: { color: '#36a2eb', font: { size: 11 } }
                 }
             },
             animation: { duration: 500, easing: 'easeOutQuart' }

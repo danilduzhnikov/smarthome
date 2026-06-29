@@ -1,3 +1,5 @@
+from django.utils import timezone
+
 from django.db import models
 from devices.models import Device
 
@@ -17,7 +19,7 @@ class DeviceMetric(models.Model):
         help_text="Type of metric: temperature, humidity, power, etc."
     )
     value = models.FloatField()
-    timestamp = models.DateTimeField(auto_now_add=True, db_index=True)
+    timestamp = models.DateTimeField(default=timezone.now, db_index=True) 
 
     class Meta:
         ordering = ['-timestamp']
